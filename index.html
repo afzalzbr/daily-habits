@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily Habits">
+<meta name="theme-color" content="#6366f1">
+<link rel="manifest" href="manifest.json">
+<title>Daily Habits</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #273549;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --border: #334155;
+    --radius: 14px;
+    --nav-h: 64px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s;
+  }
+
+  .nav-tab .nav-icon { font-size: 22px; }
+  .nav-tab.active { color: var(--accent-light); }
+
+  /* ── Pages ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Shared header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-light);
+    letter-spacing: -0.3px;
+  }
+
+  .export-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* ── Date nav ── */
+  .date-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .date-display { flex: 1; text-align: center; }
+  .date-label { font-size: 16px; font-weight: 600; color: var(--text); }
+  .date-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .today-btn {
+    background: var(--accent);
+    border: none;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: none;
+  }
+
+  .today-btn.visible { display: block; }
+
+  /* ── Tracker main ── */
+  .tracker-main {
+    padding: 16px;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Prayer toggles ── */
+  .prayers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .prayer-btn {
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .prayer-btn .icon { font-size: 24px; margin-bottom: 5px; display: block; }
+  .prayer-btn .name { font-size: 13px; font-weight: 600; color: var(--muted); display: block; }
+  .prayer-btn.yes { background: rgba(34,197,94,0.12); border-color: var(--green); }
+  .prayer-btn.yes .name { color: var(--green); }
+  .prayer-btn.no { background: rgba(239,68,68,0.10); border-color: var(--red); }
+  .prayer-btn.no .name { color: var(--red); }
+  .prayer-btn:active { transform: scale(0.95); }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border); display: inline-block; margin-top: 4px;
+  }
+  .prayer-btn.yes .status-dot { background: var(--green); }
+  .prayer-btn.no .status-dot { background: var(--red); }
+
+  /* ── Text fields ── */
+  .field { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .field:last-child { border-bottom: none; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 6px;
+  }
+  .field input, .field textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 15px;
+    font-family: inherit; padding: 10px 12px; outline: none; resize: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--accent); }
+  .field input::placeholder, .field textarea::placeholder { color: var(--border); }
+
+  /* ── Day summary bar ── */
+  .summary {
+    display: flex; gap: 8px; padding: 12px 16px;
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid var(--border); margin-bottom: 14px; align-items: center;
+  }
+  .summary-item { text-align: center; flex: 1; }
+  .summary-num { font-size: 22px; font-weight: 700; color: var(--green); line-height: 1; }
+  .summary-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .summary-divider { width: 1px; height: 36px; background: var(--border); }
+
+  .save-indicator {
+    text-align: center; font-size: 12px; color: var(--muted);
+    padding: 8px; opacity: 0; transition: opacity 0.3s;
+  }
+  .save-indicator.show { opacity: 1; }
+
+  /* ────────────────────────────────────────────
+     DASHBOARD
+  ──────────────────────────────────────────── */
+  .dash-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 14px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dash-main {
+    padding: 16px;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  /* Stat cards row */
+  .stat-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 10px;
+    text-align: center;
+  }
+
+  .stat-card .val {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-card .lbl {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Weekly view */
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    padding: 14px;
+  }
+
+  .week-day {
+    text-align: center;
+  }
+
+  .week-day-label {
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .week-day-num {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .week-day-dots {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+  }
+
+  .week-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .week-dot.yes { background: var(--green); }
+  .week-dot.no { background: var(--red); }
+
+  .week-day.today .week-day-num {
+    color: var(--accent-light);
+    font-weight: 700;
+  }
+
+  /* Prayer completion bars */
+  .prayer-stats {
+    padding: 14px 16px;
+  }
+
+  .prayer-stat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .prayer-stat-row:last-child { margin-bottom: 0; }
+
+  .prayer-stat-icon {
+    font-size: 16px;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .prayer-stat-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    width: 54px;
+    flex-shrink: 0;
+  }
+
+  .prayer-bar-wrap {
+    flex: 1;
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+  }
+
+  .prayer-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--green);
+    transition: width 0.4s ease;
+  }
+
+  .prayer-stat-pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    width: 30px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Heatmap */
+  .heatmap-wrap {
+    padding: 14px 16px;
+    overflow-x: auto;
+  }
+
+  .heatmap-month-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .hm-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    background: var(--surface2);
+    position: relative;
+    cursor: default;
+  }
+
+  .hm-cell.empty { background: transparent; }
+
+  .hm-cell[data-level="0"] { background: var(--surface2); }
+  .hm-cell[data-level="1"] { background: rgba(34,197,94,0.20); }
+  .hm-cell[data-level="2"] { background: rgba(34,197,94,0.40); }
+  .hm-cell[data-level="3"] { background: rgba(34,197,94,0.60); }
+  .hm-cell[data-level="4"] { background: rgba(34,197,94,0.80); }
+  .hm-cell[data-level="5"] { background: #22c55e; }
+  .hm-cell[data-level="6"] { background: #16a34a; }
+
+  .hm-cell.today-cell {
+    outline: 2px solid var(--accent-light);
+    outline-offset: 1px;
+  }
+
+  .hm-cell-num {
+    position: absolute;
+    top: 1px;
+    left: 2px;
+    font-size: 8px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1;
+  }
+
+  .heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .heatmap-legend span { font-size: 10px; color: var(--muted); }
+
+  .legend-cell {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  /* Month nav */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .month-nav-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════
+     PAGE: TRACKER
+════════════════════════════════ -->
+<div id="pageTracker" class="page active">
+  <header>
+    <div class="header-top">
+      <h1>📿 Daily Habits</h1>
+      <button class="export-btn" onclick="exportCSV()">⬇️ CSV</button>
+    </div>
+    <div class="date-nav">
+      <button class="nav-btn" onclick="changeDay(-1)">‹</button>
+      <div class="date-display">
+        <div class="date-label" id="dateLarge"></div>
+        <div class="date-sub" id="dateSub"></div>
+      </div>
+      <button class="today-btn" id="todayBtn" onclick="goToday()">Today</button>
+      <button class="nav-btn" onclick="changeDay(1)">›</button>
+    </div>
+  </header>
+
+  <div class="tracker-main">
+    <div class="summary">
+      <div class="summary-item">
+        <div class="summary-num" id="prayerCount">0</div>
+        <div class="summary-label">Prayers</div>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item">
+        <div class="summary-num" id="streakCount" style="color:var(--accent-light)">0</div>
+        <div class="summary-label">Streak</div>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item">
+        <div class="summary-num" id="totalDays" style="color:var(--muted)">0</div>
+        <div class="summary-label">Logged</div>
+      </div>
+    </div>
+
+    <section>
+      <div class="section-title">Prayers & Tilawat</div>
+      <div class="prayers-grid" id="prayersGrid"></div>
+    </section>
+
+    <section>
+      <div class="section-title">Daily Activities</div>
+      <div class="field">
+        <label>Exercise</label>
+        <textarea id="exercise" rows="2" placeholder="What did you do?" oninput="saveDay()"></textarea>
+      </div>
+      <div class="field">
+        <label>Learning</label>
+        <textarea id="learning" rows="2" placeholder="What did you learn?" oninput="saveDay()"></textarea>
+      </div>
+      <div class="field">
+        <label>Reading (10 mins)</label>
+        <textarea id="reading" rows="2" placeholder="What did you read?" oninput="saveDay()"></textarea>
+      </div>
+      <div class="field">
+        <label>Money Spent</label>
+        <input type="text" id="money" placeholder="e.g. 500" oninput="saveDay()">
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Notes / Journal</div>
+      <div class="field">
+        <textarea id="notes" rows="5" placeholder="Your thoughts for the day..." oninput="saveDay()"></textarea>
+      </div>
+    </section>
+
+    <div class="save-indicator" id="saveIndicator">✓ Saved</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     PAGE: DASHBOARD
+════════════════════════════════ -->
+<div id="pageDashboard" class="page">
+  <div class="dash-header">
+    <h1>📊 Dashboard</h1>
+  </div>
+
+  <div class="dash-main">
+
+    <!-- Stat cards -->
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="val" id="dStreak" style="color:var(--accent-light)">0</div>
+        <div class="lbl">Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="dBestStreak" style="color:var(--amber)">0</div>
+        <div class="lbl">Best</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="dLoggedDays" style="color:var(--green)">0</div>
+        <div class="lbl">Days</div>
+      </div>
+    </div>
+
+    <!-- Weekly overview -->
+    <section>
+      <div class="section-title">This Week</div>
+      <div class="week-grid" id="weekGrid"></div>
+    </section>
+
+    <!-- Per-prayer completion -->
+    <section>
+      <div class="section-title">Prayer Completion (All Time)</div>
+      <div class="prayer-stats" id="prayerStats"></div>
+    </section>
+
+    <!-- Monthly heatmap -->
+    <section>
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;padding-right:12px">
+        <span>Monthly Heatmap</span>
+      </div>
+      <div class="heatmap-wrap">
+        <div class="month-nav">
+          <button class="month-nav-btn" onclick="changeHeatmapMonth(-1)">‹</button>
+          <span id="heatmapMonthLabel" style="font-size:13px;font-weight:600;color:var(--text)"></span>
+          <button class="month-nav-btn" onclick="changeHeatmapMonth(1)">›</button>
+        </div>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+        <div class="heatmap-legend">
+          <span>0</span>
+          <div class="legend-cell" style="background:var(--surface2)"></div>
+          <div class="legend-cell" style="background:rgba(34,197,94,0.20)"></div>
+          <div class="legend-cell" style="background:rgba(34,197,94,0.40)"></div>
+          <div class="legend-cell" style="background:rgba(34,197,94,0.60)"></div>
+          <div class="legend-cell" style="background:rgba(34,197,94,0.80)"></div>
+          <div class="legend-cell" style="background:#22c55e"></div>
+          <div class="legend-cell" style="background:#16a34a"></div>
+          <span>6 ✓</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ── Bottom nav ── -->
+<nav class="bottom-nav">
+  <button class="nav-tab active" id="tabTracker" onclick="switchTab('tracker')">
+    <span class="nav-icon">✅</span>
+    <span>Today</span>
+  </button>
+  <button class="nav-tab" id="tabDashboard" onclick="switchTab('dashboard')">
+    <span class="nav-icon">📊</span>
+    <span>Dashboard</span>
+  </button>
+</nav>
+
+<script>
+const PRAYERS = [
+  { key: 'fajar',   name: 'Fajar',   icon: '🌙' },
+  { key: 'zuhar',   name: 'Zuhar',   icon: '☀️' },
+  { key: 'asr',     name: 'Asr',     icon: '🌤️' },
+  { key: 'maghrib', name: 'Maghrib', icon: '🌆' },
+  { key: 'isha',    name: 'Isha',    icon: '🌃' },
+  { key: 'tilawat', name: 'Tilawat', icon: '📖' },
+];
+const TEXT_FIELDS = ['exercise', 'learning', 'reading', 'money', 'notes'];
+const START_DATE = '2026-06-01';
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+let currentDate = todayKey();
+let data = JSON.parse(localStorage.getItem('habitsData') || '{}');
+let heatmapYear, heatmapMonth;
+
+// ── Helpers ──────────────────────────────────
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function keyToDate(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+
+function dateToKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function prayerCount(dayData) {
+  return PRAYERS.filter(p => dayData && dayData[p.key] === 'yes').length;
+}
+
+// ── Tab switching ────────────────────────────
+function switchTab(tab) {
+  document.getElementById('pageTracker').classList.toggle('active', tab === 'tracker');
+  document.getElementById('pageDashboard').classList.toggle('active', tab === 'dashboard');
+  document.getElementById('tabTracker').classList.toggle('active', tab === 'tracker');
+  document.getElementById('tabDashboard').classList.toggle('active', tab === 'dashboard');
+  if (tab === 'dashboard') renderDashboard();
+}
+
+// ── Tracker logic ────────────────────────────
+function buildPrayersGrid() {
+  const grid = document.getElementById('prayersGrid');
+  grid.innerHTML = '';
+  const day = data[currentDate] || {};
+  PRAYERS.forEach(p => {
+    const state = day[p.key];
+    const btn = document.createElement('button');
+    btn.className = 'prayer-btn' + (state ? ' ' + state : '');
+    btn.innerHTML = `<span class="icon">${p.icon}</span><span class="name">${p.name}</span><span class="status-dot"></span>`;
+    btn.onclick = () => togglePrayer(p.key);
+    grid.appendChild(btn);
+  });
+}
+
+function togglePrayer(key) {
+  if (!data[currentDate]) data[currentDate] = {};
+  const cur = data[currentDate][key];
+  if (!cur) data[currentDate][key] = 'yes';
+  else if (cur === 'yes') data[currentDate][key] = 'no';
+  else delete data[currentDate][key];
+  persist();
+  buildPrayersGrid();
+  updateSummary();
+}
+
+function loadDay() {
+  const day = data[currentDate] || {};
+  TEXT_FIELDS.forEach(f => { document.getElementById(f).value = day[f] || ''; });
+  buildPrayersGrid();
+  updateHeader();
+  updateSummary();
+}
+
+function saveDay() {
+  if (!data[currentDate]) data[currentDate] = {};
+  TEXT_FIELDS.forEach(f => {
+    const val = document.getElementById(f).value.trim();
+    if (val) data[currentDate][f] = val;
+    else delete data[currentDate][f];
+  });
+  if (Object.keys(data[currentDate]).length === 0) delete data[currentDate];
+  persist();
+  showSaved();
+}
+
+let saveTimer;
+function showSaved() {
+  const el = document.getElementById('saveIndicator');
+  el.classList.add('show');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+function persist() { localStorage.setItem('habitsData', JSON.stringify(data)); }
+
+function updateHeader() {
+  const d = keyToDate(currentDate);
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  document.getElementById('dateLarge').textContent =
+    `${days[d.getDay()]}, ${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+  document.getElementById('dateSub').textContent = currentDate === todayKey() ? 'Today' : '';
+  document.getElementById('todayBtn').classList.toggle('visible', currentDate !== todayKey());
+  const fwdBtn = document.querySelector('.date-nav .nav-btn:last-child');
+  fwdBtn.style.opacity = currentDate >= todayKey() ? '0.2' : '1';
+  fwdBtn.style.pointerEvents = currentDate >= todayKey() ? 'none' : '';
+  const backBtn = document.querySelector('.date-nav .nav-btn:first-child');
+  backBtn.style.opacity = currentDate <= START_DATE ? '0.2' : '1';
+  backBtn.style.pointerEvents = currentDate <= START_DATE ? 'none' : '';
+}
+
+function calcStreak() {
+  let streak = 0;
+  let d = new Date();
+  while (true) {
+    const k = dateToKey(d);
+    const dd = data[k] || {};
+    if (!PRAYERS.some(p => dd[p.key] === 'yes')) break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+function calcBestStreak() {
+  const keys = Object.keys(data).sort();
+  let best = 0, cur = 0, prev = null;
+  for (const k of keys) {
+    const hasPrayer = PRAYERS.some(p => data[k][p.key] === 'yes');
+    if (!hasPrayer) { cur = 0; prev = null; continue; }
+    if (prev) {
+      const diff = (keyToDate(k) - keyToDate(prev)) / 86400000;
+      cur = diff === 1 ? cur + 1 : 1;
+    } else {
+      cur = 1;
+    }
+    if (cur > best) best = cur;
+    prev = k;
+  }
+  return best;
+}
+
+function updateSummary() {
+  const day = data[currentDate] || {};
+  document.getElementById('prayerCount').textContent = prayerCount(day);
+  document.getElementById('streakCount').textContent = calcStreak();
+  document.getElementById('totalDays').textContent = Object.keys(data).length;
+}
+
+function changeDay(delta) {
+  if (delta > 0 && currentDate >= todayKey()) return;
+  const d = keyToDate(currentDate);
+  d.setDate(d.getDate() + delta);
+  const next = dateToKey(d);
+  if (next < START_DATE) return;
+  currentDate = next;
+  loadDay();
+}
+
+function goToday() {
+  currentDate = todayKey();
+  loadDay();
+}
+
+// ── Dashboard logic ──────────────────────────
+function renderDashboard() {
+  const streak = calcStreak();
+  const best = calcBestStreak();
+  document.getElementById('dStreak').textContent = streak;
+  document.getElementById('dBestStreak').textContent = best;
+  document.getElementById('dLoggedDays').textContent = Object.keys(data).length;
+  renderWeek();
+  renderPrayerStats();
+  renderHeatmap();
+}
+
+function renderWeek() {
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+  const today = new Date();
+  // Show today first, then 6 previous days
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const k = dateToKey(d);
+    const day = data[k] || {};
+    const isToday = k === todayKey();
+
+    const col = document.createElement('div');
+    col.className = 'week-day' + (isToday ? ' today' : '');
+
+    const dlabel = document.createElement('div');
+    dlabel.className = 'week-day-label';
+    dlabel.textContent = DAY_NAMES[d.getDay()];
+
+    const dnum = document.createElement('div');
+    dnum.className = 'week-day-num';
+    dnum.textContent = d.getDate();
+
+    const dots = document.createElement('div');
+    dots.className = 'week-day-dots';
+    PRAYERS.forEach(p => {
+      const dot = document.createElement('div');
+      dot.className = 'week-dot' + (day[p.key] === 'yes' ? ' yes' : day[p.key] === 'no' ? ' no' : '');
+      dots.appendChild(dot);
+    });
+
+    col.appendChild(dlabel);
+    col.appendChild(dnum);
+    col.appendChild(dots);
+    grid.appendChild(col);
+  }
+}
+
+function renderPrayerStats() {
+  const container = document.getElementById('prayerStats');
+  container.innerHTML = '';
+  const allKeys = Object.keys(data);
+  const total = allKeys.length;
+
+  PRAYERS.forEach(p => {
+    let yes = 0;
+    allKeys.forEach(k => { if (data[k][p.key] === 'yes') yes++; });
+    const pct = total ? Math.round(yes / total * 100) : 0;
+
+    const row = document.createElement('div');
+    row.className = 'prayer-stat-row';
+    row.innerHTML = `
+      <span class="prayer-stat-icon">${p.icon}</span>
+      <span class="prayer-stat-name">${p.name}</span>
+      <div class="prayer-bar-wrap">
+        <div class="prayer-bar-fill" style="width:${pct}%"></div>
+      </div>
+      <span class="prayer-stat-pct">${pct}%</span>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function renderHeatmap() {
+  const now = new Date();
+  if (heatmapYear === undefined) { heatmapYear = now.getFullYear(); heatmapMonth = now.getMonth(); }
+
+  document.getElementById('heatmapMonthLabel').textContent =
+    `${MONTH_NAMES[heatmapMonth]} ${heatmapYear}`;
+
+  const grid = document.getElementById('heatmapGrid');
+  grid.innerHTML = '';
+  const tk = todayKey();
+
+  const firstDay = new Date(heatmapYear, heatmapMonth, 1);
+  const daysInMonth = new Date(heatmapYear, heatmapMonth + 1, 0).getDate();
+  const startDow = firstDay.getDay(); // 0=Sun
+
+  // Empty cells before month starts
+  for (let i = 0; i < startDow; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'hm-cell empty';
+    grid.appendChild(cell);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const k = `${heatmapYear}-${String(heatmapMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const day = data[k] || {};
+    const count = prayerCount(day);
+    const cell = document.createElement('div');
+    cell.className = 'hm-cell' + (k === tk ? ' today-cell' : '');
+    cell.setAttribute('data-level', count);
+    cell.title = `${d} ${MONTH_SHORT[heatmapMonth]}: ${count}/6 prayers`;
+    const num = document.createElement('span');
+    num.className = 'hm-cell-num';
+    num.textContent = d;
+    cell.appendChild(num);
+    grid.appendChild(cell);
+  }
+}
+
+function changeHeatmapMonth(delta) {
+  heatmapMonth += delta;
+  if (heatmapMonth < 0) { heatmapMonth = 11; heatmapYear--; }
+  if (heatmapMonth > 11) { heatmapMonth = 0; heatmapYear++; }
+  renderHeatmap();
+}
+
+// ── CSV export ───────────────────────────────
+function formatCSVDate(key) {
+  const d = keyToDate(key);
+  return `${d.getDate()}-${MONTH_NAMES[d.getMonth()]}-${d.getFullYear()}`;
+}
+
+function exportCSV() {
+  const headers = ['Sr. No','Date','Fajar','Zuhar','Asr','Maghrib','Isha','Tilawat','Excercise','Learning','Reading 10 mins','Notes/Journal','Money Spent'];
+  const rows = [headers.join(',')];
+  Object.keys(data).sort().forEach((k, i) => {
+    const d = data[k];
+    const esc = v => `"${(v||'').replace(/"/g,'""')}"`;
+    rows.push([
+      i+1, formatCSVDate(k),
+      d.fajar||'', d.zuhar||'', d.asr||'', d.maghrib||'', d.isha||'', d.tilawat||'',
+      esc(d.exercise), esc(d.learning), esc(d.reading), esc(d.notes), esc(d.money)
+    ].join(','));
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `habits-${todayKey()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Service Worker ───────────────────────────
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+
+// ── Init ─────────────────────────────────────
+loadDay();
+</script>
+</body>
+</html>
