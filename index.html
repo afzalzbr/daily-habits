@@ -16,33 +16,66 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0a0f1e;
-    --surface: #0f1f3d;
-    --surface2: #162a50;
-    --accent: #d97706;
-    --accent-light: #fbbf24;
-    --green: #34d399;
+    --bg: #212A31;
+    --surface: #2E3944;
+    --surface2: #3a4753;
+    --accent: #124E66;
+    --accent-light: #94b0b6;
+    --green: #4ade80;
     --red: #f87171;
-    --amber: #fbbf24;
-    --text: #e2e8f0;
-    --muted: #94a3b8;
-    --border: #1e3a6e;
+    --amber: #e9b949;
+    --text: #D3D9D4;
+    --muted: #748D92;
+    --border: #3a4753;
     --radius: 14px;
     --nav-h: 64px;
   }
 
+  /* Slate (default, same as :root) */
+  [data-theme="slate"] {
+    --bg: #212A31; --surface: #2E3944; --surface2: #3a4753;
+    --accent: #124E66; --accent-light: #94b0b6;
+    --green: #4ade80; --red: #f87171; --amber: #e9b949;
+    --text: #D3D9D4; --muted: #748D92; --border: #3a4753;
+  }
+
   [data-theme="light"] {
-    --bg: #eff6ff;
-    --surface: #ffffff;
-    --surface2: #dbeafe;
-    --accent: #b45309;
-    --accent-light: #92400e;
-    --green: #059669;
-    --red: #dc2626;
-    --amber: #d97706;
-    --text: #0a0f1e;
-    --muted: #475569;
-    --border: #bfdbfe;
+    --bg: #D3D9D4; --surface: #ffffff; --surface2: #e4e8e5;
+    --accent: #124E66; --accent-light: #0d3a4d;
+    --green: #16a34a; --red: #dc2626; --amber: #b8860b;
+    --text: #212A31; --muted: #566b70; --border: #b8c0ba;
+  }
+
+  /* Retro — warm teal + red-orange */
+  [data-theme="retro"] {
+    --bg: #244855; --surface: #2f5a68; --surface2: #3a6573;
+    --accent: #E64833; --accent-light: #90AEAD;
+    --green: #7fb069; --red: #E64833; --amber: #FBE9D0;
+    --text: #FBE9D0; --muted: #90AEAD; --border: #874F41;
+  }
+
+  /* Midnight — navy + gold */
+  [data-theme="midnight"] {
+    --bg: #0a0f1e; --surface: #0f1f3d; --surface2: #162a50;
+    --accent: #d97706; --accent-light: #fbbf24;
+    --green: #34d399; --red: #f87171; --amber: #fbbf24;
+    --text: #e2e8f0; --muted: #94a3b8; --border: #1e3a6e;
+  }
+
+  /* Emerald — Islamic green */
+  [data-theme="emerald"] {
+    --bg: #052e16; --surface: #14532d; --surface2: #166534;
+    --accent: #22c55e; --accent-light: #4ade80;
+    --green: #4ade80; --red: #f87171; --amber: #fbbf24;
+    --text: #f0fdf4; --muted: #86efac; --border: #166534;
+  }
+
+  /* Rose — plum + pink */
+  [data-theme="rose"] {
+    --bg: #1a1025; --surface: #2d1b3d; --surface2: #3d2752;
+    --accent: #ec4899; --accent-light: #f9a8d4;
+    --green: #4ade80; --red: #f87171; --amber: #fbbf24;
+    --text: #fdf4ff; --muted: #c4b5d4; --border: #3d2752;
   }
 
   body {
@@ -573,7 +606,7 @@
     <div class="header-top">
       <h1>📿 Daily Habits</h1>
       <div style="display:flex;gap:6px;align-items:center">
-        <button class="export-btn" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">🌙</button>
+        <button class="export-btn" onclick="openThemePicker()" title="Theme">🎨</button>
         <button class="export-btn" onclick="exportCSV()">⬇️</button>
         <button class="export-btn" onclick="signOut()" title="Sign out">⏻</button>
       </div>
@@ -650,7 +683,7 @@
   <div class="dash-header">
     <h1>📊 Dashboard</h1>
     <div style="display:flex;gap:6px">
-      <button class="export-btn" onclick="toggleTheme()" id="themeBtnDash" title="Toggle theme">🌙</button>
+      <button class="export-btn" onclick="openThemePicker()" title="Theme">🎨</button>
       <button class="export-btn" onclick="signOut()" title="Sign out">⏻</button>
     </div>
   </div>
@@ -725,6 +758,22 @@
     <span>Dashboard</span>
   </button>
 </nav>
+
+<!-- ── Theme picker ── -->
+<div id="themeSheet" onclick="closeThemePicker(event)" style="
+  display:none; position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,0.5); align-items:flex-end; justify-content:center;
+">
+  <div style="
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:18px 18px 0 0; width:100%; max-width:520px;
+    padding:20px 16px calc(24px + env(safe-area-inset-bottom));
+  " onclick="event.stopPropagation()">
+    <div style="text-align:center; font-size:13px; font-weight:700; text-transform:uppercase;
+      letter-spacing:1px; color:var(--muted); margin-bottom:16px;">Choose Theme</div>
+    <div id="themeGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;"></div>
+  </div>
+</div>
 
 <script>
 // ── Supabase ─────────────────────────────────
@@ -1106,20 +1155,53 @@ function exportCSV() {
 }
 
 // ── Theme ────────────────────────────────────
+const THEMES = [
+  { id: 'slate',    name: 'Slate',    bg: '#212A31', accent: '#124E66', text: '#D3D9D4' },
+  { id: 'retro',    name: 'Retro',    bg: '#244855', accent: '#E64833', text: '#FBE9D0' },
+  { id: 'midnight', name: 'Midnight', bg: '#0a0f1e', accent: '#d97706', text: '#e2e8f0' },
+  { id: 'emerald',  name: 'Emerald',  bg: '#052e16', accent: '#22c55e', text: '#f0fdf4' },
+  { id: 'rose',     name: 'Rose',     bg: '#1a1025', accent: '#ec4899', text: '#fdf4ff' },
+  { id: 'light',    name: 'Light',    bg: '#D3D9D4', accent: '#124E66', text: '#212A31' },
+];
+
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  const icon = theme === 'light' ? '🌙' : '☀️';
-  const btn = document.getElementById('themeBtn');
-  const btnD = document.getElementById('themeBtnDash');
-  if (btn) btn.textContent = icon;
-  if (btnD) btnD.textContent = icon;
 }
 
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme');
-  const next = current === 'light' ? 'dark' : 'light';
-  localStorage.setItem('theme', next);
-  applyTheme(next);
+function openThemePicker() {
+  const grid = document.getElementById('themeGrid');
+  const active = document.documentElement.getAttribute('data-theme');
+  grid.innerHTML = '';
+  THEMES.forEach(t => {
+    const card = document.createElement('button');
+    card.onclick = () => selectTheme(t.id);
+    card.style.cssText = `
+      background:${t.bg}; border:2px solid ${t.id === active ? t.accent : 'transparent'};
+      border-radius:12px; padding:14px 8px; cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      outline:1px solid rgba(255,255,255,0.08);
+    `;
+    card.innerHTML = `
+      <div style="display:flex; gap:4px;">
+        <span style="width:14px;height:14px;border-radius:50%;background:${t.accent};"></span>
+        <span style="width:14px;height:14px;border-radius:50%;background:${t.text};"></span>
+      </div>
+      <span style="font-size:12px;font-weight:600;color:${t.text};">${t.name}</span>
+      ${t.id === active ? `<span style="font-size:11px;color:${t.accent};">✓ Active</span>` : ''}
+    `;
+    grid.appendChild(card);
+  });
+  document.getElementById('themeSheet').style.display = 'flex';
+}
+
+function selectTheme(id) {
+  localStorage.setItem('theme', id);
+  applyTheme(id);
+  document.getElementById('themeSheet').style.display = 'none';
+}
+
+function closeThemePicker(e) {
+  document.getElementById('themeSheet').style.display = 'none';
 }
 
 // ── Service Worker ───────────────────────────
@@ -1134,7 +1216,7 @@ function showLoading() {
 }
 
 // ── Init ─────────────────────────────────────
-applyTheme(localStorage.getItem('theme') || 'dark');
+applyTheme(localStorage.getItem('theme') || 'slate');
 showLoading();
 
 sb.auth.onAuthStateChange(async (event, session) => {
