@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Daily Habits">
 <meta name="theme-color" content="#6366f1">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>Daily Habits</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -27,6 +29,20 @@
     --border: #334155;
     --radius: 14px;
     --nav-h: 64px;
+  }
+
+  [data-theme="light"] {
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface2: #e2e8f0;
+    --accent: #6366f1;
+    --accent-light: #4f46e5;
+    --green: #16a34a;
+    --red: #dc2626;
+    --amber: #d97706;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: #cbd5e1;
   }
 
   body {
@@ -529,7 +545,11 @@
   <header>
     <div class="header-top">
       <h1>📿 Daily Habits</h1>
-      <button class="export-btn" onclick="exportCSV()">⬇️ CSV</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="export-btn" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">🌙</button>
+        <button class="export-btn" onclick="exportCSV()">⬇️</button>
+        <button class="export-btn" onclick="signOut()" title="Sign out">⏻</button>
+      </div>
     </div>
     <div class="date-nav">
       <button class="nav-btn" onclick="changeDay(-1)">‹</button>
@@ -602,6 +622,10 @@
 <div id="pageDashboard" class="page">
   <div class="dash-header">
     <h1>📊 Dashboard</h1>
+    <div style="display:flex;gap:6px">
+      <button class="export-btn" onclick="toggleTheme()" id="themeBtnDash" title="Toggle theme">🌙</button>
+      <button class="export-btn" onclick="signOut()" title="Sign out">⏻</button>
+    </div>
   </div>
 
   <div class="dash-main">
@@ -1044,10 +1068,28 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
+// ── Theme ────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = theme === 'light' ? '🌙' : '☀️';
+  const btn = document.getElementById('themeBtn');
+  const btnD = document.getElementById('themeBtnDash');
+  if (btn) btn.textContent = icon;
+  if (btnD) btnD.textContent = icon;
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'light' ? 'dark' : 'light';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+}
+
 // ── Service Worker ───────────────────────────
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 
 // ── Init ─────────────────────────────────────
+applyTheme(localStorage.getItem('theme') || 'dark');
 document.querySelector('.bottom-nav').style.display = 'none';
 document.getElementById('pageTracker').classList.remove('active');
 
