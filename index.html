@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#6366f1">
 <link rel="manifest" href="manifest.json">
 <title>Daily Habits</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -496,6 +497,32 @@
 <body>
 
 <!-- ═══════════════════════════════
+     PAGE: AUTH
+════════════════════════════════ -->
+<div id="pageAuth" style="
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:100vh; padding:32px 24px; text-align:center;
+">
+  <div style="font-size:48px; margin-bottom:16px;">📿</div>
+  <h2 style="font-size:22px; font-weight:700; color:var(--accent-light); margin-bottom:8px;">Daily Habits</h2>
+  <p style="color:var(--muted); font-size:14px; margin-bottom:32px;">Sign in to sync across devices</p>
+
+  <div id="authForm" style="width:100%; max-width:320px;">
+    <input id="authEmail" type="email" placeholder="your@email.com" style="
+      width:100%; background:var(--surface); border:1px solid var(--border);
+      border-radius:10px; color:var(--text); font-size:16px; font-family:inherit;
+      padding:14px 16px; outline:none; margin-bottom:12px;
+    ">
+    <button onclick="sendMagicLink()" style="
+      width:100%; background:var(--accent); border:none; border-radius:10px;
+      color:white; font-size:16px; font-weight:700; padding:14px;
+      cursor:pointer; margin-bottom:16px;
+    ">Send Magic Link</button>
+    <p id="authMsg" style="color:var(--muted); font-size:13px;"></p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
      PAGE: TRACKER
 ════════════════════════════════ -->
 <div id="pageTracker" class="page active">
@@ -649,6 +676,14 @@
 </nav>
 
 <script>
+// ── Supabase ─────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(
+  'https://jgavmfrsomlqwiejpczo.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnYXZtZnJzb21scXdpZWpwY3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNjA3NTYsImV4cCI6MjA5NTgzNjc1Nn0.BSmc62IkzX6-yXqP7Kb8j_w0TzPtLM0sh0T3gQesptQ'
+);
+
+// ── Constants ────────────────────────────────
 const PRAYERS = [
   { key: 'fajar',   name: 'Fajar',   icon: '🌙' },
   { key: 'zuhar',   name: 'Zuhar',   icon: '☀️' },
@@ -666,24 +701,92 @@ const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 let currentDate = todayKey();
 let data = JSON.parse(localStorage.getItem('habitsData') || '{}');
 let heatmapYear, heatmapMonth;
+let currentUser = null;
 
 // ── Helpers ──────────────────────────────────
 function todayKey() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-
 function keyToDate(key) {
   const [y, m, d] = key.split('-').map(Number);
   return new Date(y, m-1, d);
 }
-
 function dateToKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 }
-
 function prayerCount(dayData) {
   return PRAYERS.filter(p => dayData && dayData[p.key] === 'yes').length;
+}
+
+// ── Auth ─────────────────────────────────────
+async function sendMagicLink() {
+  const email = document.getElementById('authEmail').value.trim();
+  const msg = document.getElementById('authMsg');
+  if (!email) { msg.textContent = 'Enter your email.'; return; }
+  msg.textContent = 'Sending…';
+  const { error } = await sb.auth.signInWithOtp({ email });
+  if (error) { msg.textContent = error.message; return; }
+  msg.textContent = '✓ Check your email for the magic link!';
+}
+
+function showApp() {
+  document.getElementById('pageAuth').style.display = 'none';
+  document.getElementById('pageTracker').classList.add('active');
+  document.getElementById('pageDashboard');
+  document.querySelector('.bottom-nav').style.display = 'flex';
+  loadDay();
+}
+
+function showAuth() {
+  document.getElementById('pageAuth').style.display = 'flex';
+  document.getElementById('pageTracker').classList.remove('active');
+  document.getElementById('pageDashboard').classList.remove('active');
+  document.querySelector('.bottom-nav').style.display = 'none';
+}
+
+function signOut() {
+  sb.auth.signOut();
+}
+
+// ── Sync from Supabase → local data ──────────
+async function syncFromRemote() {
+  if (!currentUser) return;
+  const { data: rows } = await sb.from('habits').select('*').eq('user_id', currentUser.id);
+  if (!rows) return;
+  rows.forEach(row => {
+    const key = row.date;
+    data[key] = {
+      fajar: row.fajar, zuhar: row.zuhar, asr: row.asr,
+      maghrib: row.maghrib, isha: row.isha, tilawat: row.tilawat,
+      exercise: row.exercise, learning: row.learning,
+      reading: row.reading, money: row.money, notes: row.notes,
+    };
+    // Strip null values
+    Object.keys(data[key]).forEach(k => { if (!data[key][k]) delete data[key][k]; });
+    if (Object.keys(data[key]).length === 0) delete data[key];
+  });
+  localStorage.setItem('habitsData', JSON.stringify(data));
+}
+
+// ── Persist local + remote ────────────────────
+function persist() {
+  localStorage.setItem('habitsData', JSON.stringify(data));
+}
+
+async function persistRemote(dateKey) {
+  if (!currentUser) return;
+  const day = data[dateKey] || {};
+  await sb.from('habits').upsert({
+    user_id: currentUser.id,
+    date: dateKey,
+    fajar: day.fajar || null, zuhar: day.zuhar || null,
+    asr: day.asr || null, maghrib: day.maghrib || null,
+    isha: day.isha || null, tilawat: day.tilawat || null,
+    exercise: day.exercise || null, learning: day.learning || null,
+    reading: day.reading || null, money: day.money || null,
+    notes: day.notes || null,
+  }, { onConflict: 'user_id,date' });
 }
 
 // ── Tab switching ────────────────────────────
@@ -717,6 +820,7 @@ function togglePrayer(key) {
   else if (cur === 'yes') data[currentDate][key] = 'no';
   else delete data[currentDate][key];
   persist();
+  persistRemote(currentDate);
   buildPrayersGrid();
   updateSummary();
 }
@@ -729,6 +833,7 @@ function loadDay() {
   updateSummary();
 }
 
+let debounceTimer;
 function saveDay() {
   if (!data[currentDate]) data[currentDate] = {};
   TEXT_FIELDS.forEach(f => {
@@ -739,6 +844,8 @@ function saveDay() {
   if (Object.keys(data[currentDate]).length === 0) delete data[currentDate];
   persist();
   showSaved();
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => persistRemote(currentDate), 1500);
 }
 
 let saveTimer;
@@ -748,8 +855,6 @@ function showSaved() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => el.classList.remove('show'), 1500);
 }
-
-function persist() { localStorage.setItem('habitsData', JSON.stringify(data)); }
 
 function updateHeader() {
   const d = keyToDate(currentDate);
@@ -767,8 +872,7 @@ function updateHeader() {
 }
 
 function calcStreak() {
-  let streak = 0;
-  let d = new Date();
+  let streak = 0, d = new Date();
   while (true) {
     const k = dateToKey(d);
     const dd = data[k] || {};
@@ -788,9 +892,7 @@ function calcBestStreak() {
     if (prev) {
       const diff = (keyToDate(k) - keyToDate(prev)) / 86400000;
       cur = diff === 1 ? cur + 1 : 1;
-    } else {
-      cur = 1;
-    }
+    } else { cur = 1; }
     if (cur > best) best = cur;
     prev = k;
   }
@@ -814,17 +916,12 @@ function changeDay(delta) {
   loadDay();
 }
 
-function goToday() {
-  currentDate = todayKey();
-  loadDay();
-}
+function goToday() { currentDate = todayKey(); loadDay(); }
 
-// ── Dashboard logic ──────────────────────────
+// ── Dashboard ────────────────────────────────
 function renderDashboard() {
-  const streak = calcStreak();
-  const best = calcBestStreak();
-  document.getElementById('dStreak').textContent = streak;
-  document.getElementById('dBestStreak').textContent = best;
+  document.getElementById('dStreak').textContent = calcStreak();
+  document.getElementById('dBestStreak').textContent = calcBestStreak();
   document.getElementById('dLoggedDays').textContent = Object.keys(data).length;
   renderWeek();
   renderPrayerStats();
@@ -835,25 +932,20 @@ function renderWeek() {
   const grid = document.getElementById('weekGrid');
   grid.innerHTML = '';
   const today = new Date();
-  // Show today first, then 6 previous days
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const k = dateToKey(d);
     const day = data[k] || {};
     const isToday = k === todayKey();
-
     const col = document.createElement('div');
     col.className = 'week-day' + (isToday ? ' today' : '');
-
     const dlabel = document.createElement('div');
     dlabel.className = 'week-day-label';
     dlabel.textContent = DAY_NAMES[d.getDay()];
-
     const dnum = document.createElement('div');
     dnum.className = 'week-day-num';
     dnum.textContent = d.getDate();
-
     const dots = document.createElement('div');
     dots.className = 'week-day-dots';
     PRAYERS.forEach(p => {
@@ -861,10 +953,7 @@ function renderWeek() {
       dot.className = 'week-dot' + (day[p.key] === 'yes' ? ' yes' : day[p.key] === 'no' ? ' no' : '');
       dots.appendChild(dot);
     });
-
-    col.appendChild(dlabel);
-    col.appendChild(dnum);
-    col.appendChild(dots);
+    col.appendChild(dlabel); col.appendChild(dnum); col.appendChild(dots);
     grid.appendChild(col);
   }
 }
@@ -874,20 +963,16 @@ function renderPrayerStats() {
   container.innerHTML = '';
   const allKeys = Object.keys(data);
   const total = allKeys.length;
-
   PRAYERS.forEach(p => {
     let yes = 0;
     allKeys.forEach(k => { if (data[k][p.key] === 'yes') yes++; });
     const pct = total ? Math.round(yes / total * 100) : 0;
-
     const row = document.createElement('div');
     row.className = 'prayer-stat-row';
     row.innerHTML = `
       <span class="prayer-stat-icon">${p.icon}</span>
       <span class="prayer-stat-name">${p.name}</span>
-      <div class="prayer-bar-wrap">
-        <div class="prayer-bar-fill" style="width:${pct}%"></div>
-      </div>
+      <div class="prayer-bar-wrap"><div class="prayer-bar-fill" style="width:${pct}%"></div></div>
       <span class="prayer-stat-pct">${pct}%</span>
     `;
     container.appendChild(row);
@@ -897,25 +982,18 @@ function renderPrayerStats() {
 function renderHeatmap() {
   const now = new Date();
   if (heatmapYear === undefined) { heatmapYear = now.getFullYear(); heatmapMonth = now.getMonth(); }
-
-  document.getElementById('heatmapMonthLabel').textContent =
-    `${MONTH_NAMES[heatmapMonth]} ${heatmapYear}`;
-
+  document.getElementById('heatmapMonthLabel').textContent = `${MONTH_NAMES[heatmapMonth]} ${heatmapYear}`;
   const grid = document.getElementById('heatmapGrid');
   grid.innerHTML = '';
   const tk = todayKey();
-
   const firstDay = new Date(heatmapYear, heatmapMonth, 1);
   const daysInMonth = new Date(heatmapYear, heatmapMonth + 1, 0).getDate();
-  const startDow = firstDay.getDay(); // 0=Sun
-
-  // Empty cells before month starts
+  const startDow = firstDay.getDay();
   for (let i = 0; i < startDow; i++) {
     const cell = document.createElement('div');
     cell.className = 'hm-cell empty';
     grid.appendChild(cell);
   }
-
   for (let d = 1; d <= daysInMonth; d++) {
     const k = `${heatmapYear}-${String(heatmapMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const day = data[k] || {};
@@ -970,7 +1048,19 @@ function exportCSV() {
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 
 // ── Init ─────────────────────────────────────
-loadDay();
+document.querySelector('.bottom-nav').style.display = 'none';
+document.getElementById('pageTracker').classList.remove('active');
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (session?.user) {
+    currentUser = session.user;
+    await syncFromRemote();
+    showApp();
+  } else {
+    currentUser = null;
+    showAuth();
+  }
+});
 </script>
 </body>
 </html>
