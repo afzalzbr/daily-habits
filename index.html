@@ -16,33 +16,33 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --surface2: #273549;
-    --accent: #6366f1;
-    --accent-light: #818cf8;
-    --green: #22c55e;
-    --red: #ef4444;
-    --amber: #f59e0b;
-    --text: #f1f5f9;
+    --bg: #0a0f1e;
+    --surface: #0f1f3d;
+    --surface2: #162a50;
+    --accent: #d97706;
+    --accent-light: #fbbf24;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --text: #e2e8f0;
     --muted: #94a3b8;
-    --border: #334155;
+    --border: #1e3a6e;
     --radius: 14px;
     --nav-h: 64px;
   }
 
   [data-theme="light"] {
-    --bg: #f1f5f9;
+    --bg: #eff6ff;
     --surface: #ffffff;
-    --surface2: #e2e8f0;
-    --accent: #6366f1;
-    --accent-light: #4f46e5;
-    --green: #16a34a;
+    --surface2: #dbeafe;
+    --accent: #b45309;
+    --accent-light: #92400e;
+    --green: #059669;
     --red: #dc2626;
     --amber: #d97706;
-    --text: #0f172a;
-    --muted: #64748b;
-    --border: #cbd5e1;
+    --text: #0a0f1e;
+    --muted: #475569;
+    --border: #bfdbfe;
   }
 
   body {
@@ -513,6 +513,17 @@
 <body>
 
 <!-- ═══════════════════════════════
+     PAGE: LOADING
+════════════════════════════════ -->
+<div id="pageLoading" style="
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:100vh; gap:16px;
+">
+  <div style="font-size:48px;">📿</div>
+  <div style="color:var(--muted); font-size:14px;">Loading…</div>
+</div>
+
+<!-- ═══════════════════════════════
      PAGE: AUTH
 ════════════════════════════════ -->
 <div id="pageAuth" style="
@@ -755,14 +766,16 @@ async function sendMagicLink() {
 }
 
 function showApp() {
+  document.getElementById('pageLoading').style.display = 'none';
   document.getElementById('pageAuth').style.display = 'none';
   document.getElementById('pageTracker').classList.add('active');
-  document.getElementById('pageDashboard');
+  document.getElementById('pageDashboard').classList.remove('active');
   document.querySelector('.bottom-nav').style.display = 'flex';
   loadDay();
 }
 
 function showAuth() {
+  document.getElementById('pageLoading').style.display = 'none';
   document.getElementById('pageAuth').style.display = 'flex';
   document.getElementById('pageTracker').classList.remove('active');
   document.getElementById('pageDashboard').classList.remove('active');
@@ -1088,10 +1101,17 @@ function toggleTheme() {
 // ── Service Worker ───────────────────────────
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 
+function showLoading() {
+  document.getElementById('pageLoading').style.display = 'flex';
+  document.getElementById('pageAuth').style.display = 'none';
+  document.getElementById('pageTracker').classList.remove('active');
+  document.getElementById('pageDashboard').classList.remove('active');
+  document.querySelector('.bottom-nav').style.display = 'none';
+}
+
 // ── Init ─────────────────────────────────────
 applyTheme(localStorage.getItem('theme') || 'dark');
-document.querySelector('.bottom-nav').style.display = 'none';
-document.getElementById('pageTracker').classList.remove('active');
+showLoading();
 
 sb.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
@@ -1103,6 +1123,20 @@ sb.auth.onAuthStateChange(async (event, session) => {
     showAuth();
   }
 });
+
+// Fallback: if onAuthStateChange doesn't fire within 3s, show auth screen
+setTimeout(async () => {
+  if (document.getElementById('pageLoading').style.display !== 'none') {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) {
+      currentUser = session.user;
+      await syncFromRemote();
+      showApp();
+    } else {
+      showAuth();
+    }
+  }
+}, 3000);
 </script>
 </body>
 </html>
