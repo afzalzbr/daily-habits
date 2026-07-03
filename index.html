@@ -793,10 +793,18 @@ const PRAYERS = [
   { key: 'tilawat', name: 'Tilawat', icon: '📖' },
 ];
 const TEXT_FIELDS = ['exercise', 'learning', 'reading', 'money', 'notes'];
-const START_DATE = '2026-06-01';
+const START_DATE = '2026-07-03';
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// One-time reset: wipe stale local data on every device.
+// Bump RESET_VERSION to trigger another wipe in the future.
+const RESET_VERSION = '2026-07-03';
+if (localStorage.getItem('resetVersion') !== RESET_VERSION) {
+  localStorage.removeItem('habitsData');
+  localStorage.setItem('resetVersion', RESET_VERSION);
+}
 
 let currentDate = todayKey();
 let data = JSON.parse(localStorage.getItem('habitsData') || '{}');
